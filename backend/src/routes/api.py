@@ -1,25 +1,30 @@
 from flask import Blueprint, jsonify, request
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-api = Blueprint('api', __name__)
+bp = Blueprint('api', __name__, url_prefix='/api')
 
-@api.route('/users', methods=['GET'])
-def get_users():
-    return jsonify({"message": "List of users"})
+@bp.route('/health')
+def health():
+    return jsonify({'status': 'healthy'})
 
-@api.route('/users', methods=['POST'])
-def create_user():
-    data = request.get_json()
-    return jsonify({"message": "User created", "data": data}), 201
+@bp.route('/search', methods=['POST'])
+def search_verses():
+    """Search for Quran verses using vector similarity."""    
+    try:
+        from services import services
+        
+        if services.search is None:
+            return jsonify({'error': 'service not initialized'}), 503
 
-@api.route('/users/<int:user_id>', methods=['GET'])
-def get_user(user_id):
-    return jsonify({"message": f"User {user_id}"})
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({'error': 'Query text is required'}), 400
 
-@api.route('/users/<int:user_id>', methods=['PUT'])
-def update_user(user_id):
-    data = request.get_json()
-    return jsonify({"message": f"User {user_id} updated", "data": data})
-
-@api.route('/users/<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
-    return jsonify({"message": f"User {user_id} deleted"})
+        results = services.search.search(data['text'], data.get('k', 5))
+        
+        return jsonify({'results': results})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
