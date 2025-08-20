@@ -1,5 +1,7 @@
 what's going on here till now? 
 request is sent with a prompt (a meaning you wanna find). When app starts, it initializes an FAISS (in memory db - vector) instance with the embeddings whole quraan verses. It's pre-encoded already with `multi-qa-mpnet-base-dot-v1` embedding model. When request reaches, the prompt gets encoded with same model and run consine similiarity search thru the indexed in-memory vector db. 
+
+**how about adding a step of {Decision making} that is an LLM choosing the returned output out of search results?**
  
 there are changable parameters: 
 - the model (but mostly its good as per said at the chatgpt conversation)
