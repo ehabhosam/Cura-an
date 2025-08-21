@@ -1,15 +1,6 @@
-"""
-Middleware package for processing requests before they reach the main business logic.
-"""
+"""Simple middleware for translation and validation."""
 
-from .translation import (
-    TranslationMiddleware,
-    create_ai_translation_middleware,
-    create_noop_translation_middleware
-)
+from .translation import TranslationMiddleware
+from .guardrails import GuardrailsMiddleware
 
-__all__ = [
-    'TranslationMiddleware',
-    'create_ai_translation_middleware', 
-    'create_noop_translation_middleware'
-]
+__all__ = ['TranslationMiddleware', 'GuardrailsMiddleware']

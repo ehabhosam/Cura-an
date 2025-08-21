@@ -19,57 +19,33 @@ def create_app():
         
         success = services.initialize_search_service(embeddings_path, metadata_path)
         if success:
-            app.logger.info("Search service initialized successfully with bilingual metadata")
+            app.logger.info("Search service initialized successfully")
         else:
             app.logger.error("Failed to initialize search service")
         
         # Initialize GenAI service with Gemini
         try:
             from services.gemini import create_gemini_function
-            # Initialize Gemini function with API key and model name
-            gemini_function = create_gemini_function(api_key=os.getenv('GEMINI_API_KEY', None), model_name="gemini-2.5-flash")
-            # inject the Gemini function into GenAI service
+            gemini_function = create_gemini_function(api_key=os.getenv('GEMINI_API_KEY'), model_name="gemini-2.5-flash")
             genai_success = services.initialize_genai_service(gemini_function)
             if genai_success:
-                app.logger.info("GenAI service initialized successfully with Gemini")
+                app.logger.info("GenAI service initialized successfully")
                 
-                # Initialize translation middleware
-                try:
-                    from middleware.config import MiddlewareConfig
-                    
-                    if MiddlewareConfig.is_translation_enabled():
-                        from middleware import create_ai_translation_middleware
-                        from prompts import translation_prompt
-                        
-                        translation_middleware = create_ai_translation_middleware(
-                            services.genai, 
-                            translation_prompt
-                        )
-                        services.set_translation_middleware(translation_middleware)
-                        app.logger.info("AI translation middleware initialized successfully")
-                    else:
-                        from middleware import create_noop_translation_middleware
-                        services.set_translation_middleware(create_noop_translation_middleware())
-                        app.logger.info("Translation middleware disabled by configuration")
-                    
-                except Exception as middleware_error:
-                    app.logger.warning(f"Translation middleware initialization failed: {middleware_error}")
-                    # Set up no-op middleware as fallback
-                    from middleware import create_noop_translation_middleware
-                    services.set_translation_middleware(create_noop_translation_middleware())
-                    app.logger.info("Fallback translation middleware (no-op) initialized")
-                    
+                # Initialize simple translation middleware
+                from middleware import TranslationMiddleware, GuardrailsMiddleware
+                from prompts import translation_prompt
+                
+                translation_middleware = TranslationMiddleware(services.genai, translation_prompt)
+                services.set_translation_middleware(translation_middleware)
+                
+                # Initialize guardrails middleware
+                guardrails_middleware = GuardrailsMiddleware()
+                services.set_guardrails_middleware(guardrails_middleware)
+                
             else:
                 app.logger.error("Failed to initialize GenAI service")
         except Exception as genai_error:
             app.logger.warning(f"GenAI service initialization failed: {genai_error}")
-            # Set up no-op middleware as fallback
-            try:
-                from middleware import create_noop_translation_middleware
-                services.set_translation_middleware(create_noop_translation_middleware())
-                app.logger.info("Fallback translation middleware (no-op) initialized")
-            except Exception:
-                pass
         
     except Exception as e:
         app.logger.error(f"Failed to initialize services: {e}")

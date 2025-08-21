@@ -16,6 +16,7 @@ class AppServices:
         self._search_service = None
         self._genai_service = None
         self._translation_middleware = None
+        self._guardrails_middleware = None
     
     def initialize_search_service(self, embeddings_path: str, metadata_path: str) -> bool:
         """Initialize the search service."""

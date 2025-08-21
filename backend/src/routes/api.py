@@ -48,14 +48,10 @@ def therapy_search():
 
         user_issue = data['issue']
         
-        # Step 1: Process through translation middleware
-        translated_issue = user_issue  # default fallback
+        # Step 1: Process through translation middleware (if available)
+        translated_issue = user_issue
         if services.translation_middleware:
-            try:
-                translated_issue = services.translation_middleware.process(user_issue)
-            except Exception as translation_error:
-                print(f"Translation middleware failed: {translation_error}")
-                # Continue with original text if translation fails
+            translated_issue = services.translation_middleware.process(user_issue)
         
         # Step 2: Generate therapy prompt using processed issue
         prompt = therapy_prompt(translated_issue)
