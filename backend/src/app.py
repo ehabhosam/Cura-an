@@ -32,10 +32,44 @@ def create_app():
             genai_success = services.initialize_genai_service(gemini_function)
             if genai_success:
                 app.logger.info("GenAI service initialized successfully with Gemini")
+                
+                # Initialize translation middleware
+                try:
+                    from middleware.config import MiddlewareConfig
+                    
+                    if MiddlewareConfig.is_translation_enabled():
+                        from middleware import create_ai_translation_middleware
+                        from prompts import translation_prompt
+                        
+                        translation_middleware = create_ai_translation_middleware(
+                            services.genai, 
+                            translation_prompt
+                        )
+                        services.set_translation_middleware(translation_middleware)
+                        app.logger.info("AI translation middleware initialized successfully")
+                    else:
+                        from middleware import create_noop_translation_middleware
+                        services.set_translation_middleware(create_noop_translation_middleware())
+                        app.logger.info("Translation middleware disabled by configuration")
+                    
+                except Exception as middleware_error:
+                    app.logger.warning(f"Translation middleware initialization failed: {middleware_error}")
+                    # Set up no-op middleware as fallback
+                    from middleware import create_noop_translation_middleware
+                    services.set_translation_middleware(create_noop_translation_middleware())
+                    app.logger.info("Fallback translation middleware (no-op) initialized")
+                    
             else:
                 app.logger.error("Failed to initialize GenAI service")
         except Exception as genai_error:
             app.logger.warning(f"GenAI service initialization failed: {genai_error}")
+            # Set up no-op middleware as fallback
+            try:
+                from middleware import create_noop_translation_middleware
+                services.set_translation_middleware(create_noop_translation_middleware())
+                app.logger.info("Fallback translation middleware (no-op) initialized")
+            except Exception:
+                pass
         
     except Exception as e:
         app.logger.error(f"Failed to initialize services: {e}")

@@ -48,17 +48,26 @@ def therapy_search():
 
         user_issue = data['issue']
         
-        # Generate therapy prompt
-        prompt = therapy_prompt(user_issue)
+        # Step 1: Process through translation middleware
+        translated_issue = user_issue  # default fallback
+        if services.translation_middleware:
+            try:
+                translated_issue = services.translation_middleware.process(user_issue)
+            except Exception as translation_error:
+                print(f"Translation middleware failed: {translation_error}")
+                # Continue with original text if translation fails
         
-        # Get AI response
+        # Step 2: Generate therapy prompt using processed issue
+        prompt = therapy_prompt(translated_issue)
+        
+        # Step 3: Get AI therapy response
         try:
             ai_response = services.genai.generate(prompt)
             print(f"AI Therapy Response: {ai_response}")  # Log to terminal
         except Exception as ai_error:
             return jsonify({'error': f'AI service failed: {str(ai_error)}'}), 500
         
-        # Search for relevant verses using AI response
+        # Step 4: Search for relevant verses using AI response
         try:
             search_results = services.search.search(ai_response, data.get('k', 5))
         except Exception as search_error:

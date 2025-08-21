@@ -15,6 +15,7 @@ class AppServices:
     def __init__(self):
         self._search_service = None
         self._genai_service = None
+        self._translation_middleware = None
     
     def initialize_search_service(self, embeddings_path: str, metadata_path: str) -> bool:
         """Initialize the search service."""
@@ -36,6 +37,11 @@ class AppServices:
             self._genai_service = None
             return False
     
+    def set_translation_middleware(self, middleware):
+        """Set the translation middleware."""
+        self._translation_middleware = middleware
+        logger.info(f"Translation middleware set: {type(middleware).__name__}")
+    
     @property
     def search(self):
         """Get the search service."""
@@ -45,6 +51,11 @@ class AppServices:
     def genai(self):
         """Get the GenAI service."""
         return self._genai_service
+    
+    @property
+    def translation_middleware(self):
+        """Get the translation middleware."""
+        return self._translation_middleware
 
 
 # Global services instance
