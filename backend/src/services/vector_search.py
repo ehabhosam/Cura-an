@@ -24,16 +24,20 @@ class VectorSearchService(SearchService):
         # Load precomputed embeddings
         embeddings = np.load(self.embeddings_path)
         
-        # Load metadata
+        # Load metadata (bilingual format)
         with open(self.metadata_path) as f:
             self.verses = json.load(f)
+        
+        # Verify that the number of embeddings matches the number of verses
+        if len(embeddings) != len(self.verses):
+            print(f"Warning: Embedding count ({len(embeddings)}) doesn't match verse count ({len(self.verses)})")
         
         # Create FAISS index (cosine similarity)
         self.index = faiss.IndexFlatIP(embeddings.shape[1])
         self.index.add(embeddings)
     
     def search(self, query: str, k: int = 5) -> list:
-        """Search for similar verses."""
+        """Search for similar verses and return bilingual results."""
         from sentence_transformers import SentenceTransformer
         
         if self.model is None:
@@ -45,11 +49,14 @@ class VectorSearchService(SearchService):
         # Search using FAISS
         D, I = self.index.search(query_emb, k)
         
-        # Format results with scores
+        # Format results with scores and bilingual verses
         results = []
         for score, idx in zip(D[0], I[0]):
-            verse = self.verses[idx].copy()
-            verse['score'] = float(score)
-            results.append(verse)
+            if idx < len(self.verses):  # Safety check
+                verse = self.verses[idx].copy()
+                verse['score'] = float(score)
+                results.append(verse)
+            else:
+                print(f"Warning: Index {idx} is out of range for verses array")
         
         return results

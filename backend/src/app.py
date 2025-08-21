@@ -13,12 +13,13 @@ def create_app():
     try:
         from services import services
         
-        embeddings_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src/data", "quraan/embeddings.npy")
-        metadata_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src/data", "quraan/metadata.json")
+        # Use the correct paths for embeddings and bilingual metadata
+        embeddings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "quran_embeddings.npy")
+        metadata_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "quran_bilingual_metadata.json")
         
         success = services.initialize_search_service(embeddings_path, metadata_path)
         if success:
-            app.logger.info("Search service initialized successfully")
+            app.logger.info("Search service initialized successfully with bilingual metadata")
         else:
             app.logger.error("Failed to initialize search service")
         
