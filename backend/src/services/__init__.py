@@ -43,6 +43,11 @@ class AppServices:
         self._translation_middleware = middleware
         logger.info(f"Translation middleware set: {type(middleware).__name__}")
     
+    def set_guardrails_middleware(self, middleware):
+        """Set the guardrails middleware."""
+        self._guardrails_middleware = middleware
+        logger.info(f"Guardrails middleware set: {type(middleware).__name__}")
+    
     @property
     def search(self):
         """Get the search service."""
@@ -57,6 +62,11 @@ class AppServices:
     def translation_middleware(self):
         """Get the translation middleware."""
         return self._translation_middleware
+    
+    @property
+    def guardrails_middleware(self):
+        """Get the guardrails middleware."""
+        return self._guardrails_middleware
 
 
 # Global services instance

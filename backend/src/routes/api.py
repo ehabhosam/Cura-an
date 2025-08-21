@@ -48,6 +48,12 @@ def therapy_search():
 
         user_issue = data['issue']
         
+        # Step 0: Validate input with guardrails
+        if services.guardrails_middleware:
+            is_valid, validation_reason = services.guardrails_middleware.validate(user_issue)
+            if not is_valid:
+                return jsonify({'error': f'Input validation failed: {validation_reason}'}), 400
+        
         # Step 1: Process through translation middleware (if available)
         translated_issue = user_issue
         if services.translation_middleware:

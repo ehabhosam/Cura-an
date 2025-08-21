@@ -7,11 +7,11 @@ logger = logging.getLogger(__name__)
 
 try:
     from guardrails import Guard
-    from guardrails.validators import ToxicLanguage, ProfanityFree
+    from guardrails.hub import ProfanityFree, NSFWText
     GUARDRAILS_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     GUARDRAILS_AVAILABLE = False
-    logger.warning("Guardrails AI not available")
+    logger.warning(f"Guardrails AI not available: {e}")
 
 
 class GuardrailsMiddleware:
@@ -38,40 +38,24 @@ class GuardrailsMiddleware:
         """Create a simple guard with basic validators."""
         guard = Guard()
         
-        # Add toxic language detection
-        guard.use(ToxicLanguage, threshold=0.5, on_fail="exception")
-        
         # Add profanity detection  
         guard.use(ProfanityFree, on_fail="exception")
+
+        # Add NSFW content detection
+        guard.use(NSFWText, on_fail="exception")
         
         return guard
     
     def _is_meaningful_content(self, text: str) -> Tuple[bool, str]:
-        """Check if content appears to be a genuine life issue."""
-        text_lower = text.lower().strip()
+        """Check if content appears to be meaningful (length-based only)."""
+        text_stripped = text.strip()
         
         # Too short
-        if len(text_lower) < 10:
+        if len(text_stripped) < 10:
             return False, "Input too short - please describe your issue in more detail"
         
-        # Test/spam keywords
-        spam_keywords = {'test', 'testing', 'hello', 'hi', 'example', 'sample', 'demo'}
-        words = set(text_lower.split())
-        if words.intersection(spam_keywords) and len(words) <= 3:
-            return False, "Input appears to be test content"
-        
-        # Life issue keywords (positive indicators)
-        life_keywords = {
-            'feel', 'feeling', 'emotion', 'sad', 'happy', 'anxious', 'worried', 'stress',
-            'problem', 'issue', 'struggle', 'difficult', 'hard', 'help', 'guidance',
-            'relationship', 'family', 'work', 'life', 'faith', 'spiritual', 'peace'
-        }
-        
-        # If it contains life keywords or is reasonably long, likely valid
-        if words.intersection(life_keywords) or len(words) >= 5:
-            return True, "Input appears to be a genuine concern"
-        
-        return True, "Input accepted"
+        # Accept anything that's reasonably long
+        return True, "Input appears to be meaningful content"
     
     def validate(self, text: str) -> Tuple[bool, str]:
         """
