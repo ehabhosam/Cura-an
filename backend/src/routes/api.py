@@ -16,7 +16,7 @@ def search_verses():
         from services import services
         
         if services.search is None:
-            return jsonify({'error': 'service not initialized'}), 503
+            return jsonify({'error': 'search service not initialized'}), 503
 
         data = request.get_json()
         if not data or 'text' not in data:
@@ -25,6 +25,50 @@ def search_verses():
         results = services.search.search(data['text'], data.get('k', 5))
         
         return jsonify({'results': results})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/therapy-search', methods=['POST'])
+def therapy_search():
+    """Process user issue through therapy AI and search for relevant Quran verses."""
+    try:
+        from services import services
+        from prompts import therapy_prompt
+        
+        if services.search is None:
+            return jsonify({'error': 'search service not initialized'}), 503
+        
+        if services.genai is None:
+            return jsonify({'error': 'AI service not initialized'}), 503
+
+        data = request.get_json()
+        if not data or 'issue' not in data:
+            return jsonify({'error': 'User issue is required'}), 400
+
+        user_issue = data['issue']
+        
+        # Generate therapy prompt
+        prompt = therapy_prompt(user_issue)
+        
+        # Get AI response
+        try:
+            ai_response = services.genai.generate(prompt)
+            print(f"AI Therapy Response: {ai_response}")  # Log to terminal
+        except Exception as ai_error:
+            return jsonify({'error': f'AI service failed: {str(ai_error)}'}), 500
+        
+        # Search for relevant verses using AI response
+        try:
+            search_results = services.search.search(ai_response, data.get('k', 5))
+        except Exception as search_error:
+            return jsonify({'error': f'Search failed: {str(search_error)}'}), 500
+        
+        return jsonify({
+            'ai_response': ai_response,
+            'search_query': ai_response,
+            'results': search_results
+        })
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500

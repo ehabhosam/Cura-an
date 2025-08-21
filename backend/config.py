@@ -1,9 +1,16 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 class Config:
     DEBUG = False
     TESTING = False
-    SECRET_KEY = 'your_secret_key_here'
+    SECRET_KEY = os.getenv('SECRET_KEY', 'your_secret_key_here')
     DATABASE_URI = 'sqlite:///your_database.db'
     JSON_SORT_KEYS = False
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 class DevelopmentConfig(Config):
     DEBUG = True

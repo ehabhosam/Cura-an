@@ -23,8 +23,22 @@ def create_app():
         else:
             app.logger.error("Failed to initialize search service")
         
+        # Initialize GenAI service with Gemini
+        try:
+            from services.gemini import create_gemini_function
+            # Initialize Gemini function with API key and model name
+            gemini_function = create_gemini_function(api_key=os.getenv('GEMINI_API_KEY', None), model_name="gemini-2.5-flash")
+            # inject the Gemini function into GenAI service
+            genai_success = services.initialize_genai_service(gemini_function)
+            if genai_success:
+                app.logger.info("GenAI service initialized successfully with Gemini")
+            else:
+                app.logger.error("Failed to initialize GenAI service")
+        except Exception as genai_error:
+            app.logger.warning(f"GenAI service initialization failed: {genai_error}")
+        
     except Exception as e:
-        app.logger.error(f"Failed to initialize search service: {e}")
+        app.logger.error(f"Failed to initialize services: {e}")
 
     # Register blueprints
     app.register_blueprint(api_bp)
