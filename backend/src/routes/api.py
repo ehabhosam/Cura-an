@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request, jsonify
+from utils.responses import success_response, validation_error, internal_error, service_error
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -7,7 +8,7 @@ bp = Blueprint('api', __name__, url_prefix='/api')
 
 @bp.route('/health')
 def health():
-    return jsonify({'status': 'healthy'})
+    return success_response({"status": "healthy"}, "Service is running")
 
 @bp.route('/search', methods=['POST'])
 def search_verses():
@@ -16,18 +17,18 @@ def search_verses():
         from services import services
         
         if services.search is None:
-            return jsonify({'error': 'search service not initialized'}), 503
+            return service_error('Search service not initialized')
 
         data = request.get_json()
         if not data or 'text' not in data:
-            return jsonify({'error': 'Query text is required'}), 400
+            return validation_error('Query text is required')
 
         results = services.search.search(data['text'], data.get('k', 5))
         
-        return jsonify({'results': results})
+        return success_response({'results': results}, 'Search completed successfully')
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(f'Search failed: {str(e)}')
 
 @bp.route('/therapy-search', methods=['POST'])
 def therapy_search():
@@ -37,14 +38,14 @@ def therapy_search():
         from prompts import therapy_prompt
         
         if services.search is None:
-            return jsonify({'error': 'search service not initialized'}), 503
+            return service_error('Search service not initialized')
         
         if services.genai is None:
-            return jsonify({'error': 'AI service not initialized'}), 503
+            return service_error('AI service not initialized')
 
         data = request.get_json()
         if not data or 'issue' not in data:
-            return jsonify({'error': 'User issue is required'}), 400
+            return validation_error('User issue is required')
 
         user_issue = data['issue']
         
@@ -52,7 +53,7 @@ def therapy_search():
         if services.guardrails_middleware:
             is_valid, validation_reason = services.guardrails_middleware.validate(user_issue)
             if not is_valid:
-                return jsonify({'error': f'Input validation failed: {validation_reason}'}), 400
+                return validation_error(validation_reason)
         
         # Step 1: Process through translation middleware (if available)
         translated_issue = user_issue
@@ -67,19 +68,19 @@ def therapy_search():
             ai_response = services.genai.generate(prompt)
             print(f"AI Therapy Response: {ai_response}")  # Log to terminal
         except Exception as ai_error:
-            return jsonify({'error': f'AI service failed: {str(ai_error)}'}), 500
+            return internal_error(f'AI service failed: {str(ai_error)}')
         
         # Step 4: Search for relevant verses using AI response
         try:
             search_results = services.search.search(ai_response, data.get('k', 5))
         except Exception as search_error:
-            return jsonify({'error': f'Search failed: {str(search_error)}'}), 500
+            return internal_error(f'Search failed: {str(search_error)}')
         
-        return jsonify({
+        return success_response({
             'ai_response': ai_response,
             'search_query': ai_response,
             'results': search_results
-        })
+        }, 'Therapy guidance completed successfully')
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return internal_error(f'Therapy search failed: {str(e)}')

@@ -6,6 +6,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { ErrorDisplay } from "@/components/ErrorDisplay"
+import { apiRequest, AppError } from "@/lib/api"
 import { Loader2, Heart, BookOpen, Sparkles } from "lucide-react"
 
 interface TherapyResult {
@@ -24,33 +26,32 @@ export default function CuraanApp() {
   const [issue, setIssue] = useState("")
   const [result, setResult] = useState<TherapyResult | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState<AppError | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!issue.trim()) return
 
     setLoading(true)
-    setError("")
+    setError(null)
     setResult(null)
 
     try {
-      const response = await fetch("/api/therapy-search", {
+      const data = await apiRequest<TherapyResult>("/api/therapy-search", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ issue: issue.trim(), k: 3 }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to get guidance. Please try again.")
-      }
-
-      const data = await response.json()
       setResult(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong")
+      if (err instanceof AppError) {
+        setError(err)
+      } else {
+        setError(new AppError(
+          err instanceof Error ? err.message : "Something went wrong",
+          'internal_error'
+        ))
+      }
     } finally {
       setLoading(false)
     }
@@ -59,7 +60,12 @@ export default function CuraanApp() {
   const handleNewSearch = () => {
     setIssue("")
     setResult(null)
-    setError("")
+    setError(null)
+  }
+
+  const handleTextInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setIssue(e.target.value)
+    if (error) setError(null) // Clear error (if it exists) when user starts typing
   }
 
   return (
@@ -103,7 +109,7 @@ export default function CuraanApp() {
                   <div className="space-y-2">
                     <Textarea
                       value={issue}
-                      onChange={(e) => setIssue(e.target.value)}
+                      onChange={handleTextInputChange}
                       placeholder="Describe what's weighing on your heart... (e.g., 'I feel anxious about my future', 'I'm struggling with loneliness', 'I need guidance and peace')"
                       className="min-h-32 resize-none border-border/50 focus:border-primary/50 focus:ring-primary/20"
                       disabled={loading}
@@ -111,12 +117,10 @@ export default function CuraanApp() {
                   </div>
 
                   {error && (
-                    <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-                      <p className="text-destructive text-sm">{error}</p>
-                    </div>
-                  )}
-
-                  <Button
+                    <ErrorDisplay
+                      error={error}
+                    />
+                  )}                  <Button
                     type="submit"
                     disabled={!issue.trim() || loading}
                     className="w-full h-12 text-base font-medium bg-primary hover:bg-primary/90 text-primary-foreground"

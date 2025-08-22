@@ -6,7 +6,13 @@ export async function POST(request: NextRequest) {
         const { issue, k = 3 } = body
 
         if (!issue || typeof issue !== "string") {
-            return NextResponse.json({ error: "Issue is required and must be a string" }, { status: 400 })
+            return NextResponse.json({
+                success: false,
+                error: {
+                    message: "Issue is required and must be a string",
+                    type: "validation_error"
+                }
+            }, { status: 400 })
         }
 
         // Forward the request to the Python Flask backend
@@ -18,15 +24,19 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({ issue: issue.trim(), k }),
         })
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            return NextResponse.json({ error: errorData.error || "Backend service unavailable" }, { status: response.status })
-        }
-
         const data = await response.json()
-        return NextResponse.json(data)
+
+        // Flask now returns consistent response structure, just pass it through
+        return NextResponse.json(data, { status: response.status })
+
     } catch (error) {
         console.error("Therapy search error:", error)
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+        return NextResponse.json({
+            success: false,
+            error: {
+                message: "Internal server error",
+                type: "internal_error"
+            }
+        }, { status: 500 })
     }
 }
