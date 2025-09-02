@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${playfair.variable} ${sourceSans.variable} antialiased`}>
-      <body className="min-h-screen bg-background">
+      <body className="min-h-screen app-container">
         {/* Header */}
         <header className="border-b border-border bg-card/50 backdrop-blur-sm">
           <div className="container mx-auto px-4 py-6">

@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
 
         const data = await response.json()
 
+        console.log(data)
+
         // Flask now returns consistent response structure, just pass it through
         return NextResponse.json(data, { status: response.status })
 
